@@ -134,11 +134,11 @@ td.num{padding:0 8px}
 td.c{text-align:center}
 td input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);cursor:pointer}
 .mlink{border:1px dashed var(--line);background:var(--surface);margin:4px 8px;padding:5px 10px;font-size:.85rem}
-.mlink::before{content:none}
-.mlink{display:flex!important;flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;text-align:left;min-height:40px;line-height:1.15;border-style:solid;width:calc(100% - 16px)}
+.mlink::before{content:"▸";flex:none;font-size:.8rem;line-height:1}
+.mlink[aria-expanded="true"]::before{content:"▾"}
+.mlink{display:flex!important;flex-direction:row;align-items:center;justify-content:flex-start;gap:7px;text-align:left;min-height:40px;line-height:1.15;border-style:solid;width:calc(100% - 16px)}
 .mlink b{font-size:.88rem;font-weight:700}
-.mlink b::before{content:"▸ ";font-weight:400}
-.mlink[aria-expanded="true"] b::before{content:"▾ "}
+.mlink .mt{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0}
 .mlink small{font-size:.7rem;color:var(--muted);white-space:normal}
 .mlink small .ok{color:var(--ok);font-weight:700}
 .mlink small .eks{color:var(--warn);font-weight:700}
@@ -178,8 +178,13 @@ body.dragmode,body.dragmode *{cursor:grabbing!important;user-select:none!importa
 @media (min-width:761px){td.n .tog{display:none}}
 .detail-actions:empty{display:none}
 select.birim{display:block;margin:2px 6px 4px;width:calc(100% - 12px);box-sizing:border-box;font-size:.78rem;padding:2px 4px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}
+.detalt{display:flex;gap:4px;margin:2px 6px 4px}
+.detalt select.birim,.detalt input.sas{margin:0;width:auto;min-width:0;box-sizing:border-box;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);font-size:.78rem;padding:1px 6px}
+.detalt select.birim{flex:1 1 0}
+.detalt input.sas{flex:1 1 0;letter-spacing:.03em;font-variant-numeric:tabular-nums}
+.detalt input.sas.bad{border-color:var(--bad)}
 select.birim.empty{color:var(--muted)}
-@media (min-width:761px){td select.birim{padding:1px 4px!important;font-size:.78rem!important;height:26px!important;min-height:0!important}}
+@media (min-width:761px){td select.birim,td input.sas{padding:1px 6px!important;font-size:.78rem!important;height:26px!important;min-height:0!important}}
 .tedrow{display:flex;align-items:center;gap:2px}.tedrow input{flex:1;min-width:0}
 .tnbtn{border:0;background:transparent;cursor:pointer;opacity:.3;font-size:.95rem;padding:2px 3px;line-height:1;flex:none;filter:grayscale(1)}
 .tnbtn:hover{opacity:.8}.tnbtn.has{opacity:1;filter:none}
@@ -383,7 +388,7 @@ tr.job.done .sugs{display:none}
       <button id="btnJobs" aria-expanded="false" aria-controls="jmPanel">İşler <span class="caret">▾</span></button>
       <div class="jm-panel" id="jmPanel" hidden></div>
     </div>
-    <div class="grow"><input class="search" id="search" type="search" placeholder="SAT kodu, malzeme veya tedarikçi ara"></div>
+    <div class="grow"><input class="search" id="search" name="is-ara-kutusu" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="SAT kodu, malzeme veya tedarikçi ara"></div>
   </div>
 
   <div class="tablebox">
@@ -487,7 +492,7 @@ function uid(){ return Date.now().toString(36) + Math.random().toString(36).slic
 function today(){ const d=new Date(), p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
 function trDate(iso){ if(!iso) return ''; const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}.${m[2]}.${m[1]}` : iso; }
 function blankItem(){ return {id:uid(), kod:'', ad:'', birim:'ADET', sip:'', tes:'', acik:''}; }
-function blankJob(){ return {id:uid(), sat:'', ted:'', tednot:'', birim:'', tarih:today(), onay:false, fatura:false, not:'', kisi:'', items:[blankItem()]}; }
+function blankJob(){ return {id:uid(), sat:'', sas:'', ted:'', tednot:'', birim:'', tarih:today(), onay:false, fatura:false, not:'', kisi:'', items:[blankItem()]}; }
 function num(v){ if(v===''||v==null) return null; const n=parseFloat(String(v).replace(',','.')); return isNaN(n)?null:n; }
 function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
@@ -698,10 +703,10 @@ function itemSummary(j){
 }
 
 function mlinkHtml(j){
-  const its = j.items.filter(filled); if(!its.length) return '<b>Malzeme ekle</b>';
+  const its = j.items.filter(filled); if(!its.length) return '<span class="mt"><b>Malzeme ekle</b></span>';
   const st = its.map(itemState), tam = st.filter(s=>s==='Tam').length, eks = st.filter(s=>s==='Eksik').length, fz = st.filter(s=>s==='Fazla').length;
   const p = []; if(tam) p.push(`<span class="ok">✓ ${tam} teslim</span>`); if(eks) p.push(`<span class="eks">${eks} eksik</span>`); if(fz) p.push(`<span class="faz">${fz} fazla</span>`);
-  return `<b>${its.length} kalem</b><small>${p.length ? p.join(' · ') : 'bekliyor'}</small>`;
+  return `<span class="mt"><b>${its.length} kalem</b><small>${p.length ? p.join(' · ') : 'bekliyor'}</small></span>`;
 }
 function counts(list=jobs){
   return {
@@ -720,7 +725,7 @@ function visible(j){
   if(filter==='part' && (j.fatura || d!=='Eksik')) return false;
   if(filter==='wait' && (j.fatura || d!=='Bekliyor')) return false;
   if(q){
-    const hay = [j.sat,detayOf(j),j.birim||'',j.ted,j.tednot||'',j.kisi||'',j.not,...j.items.map(i=>(i.kod||'')+' '+i.ad+' '+i.acik)].join(' ').toLocaleLowerCase('tr');
+    const hay = [j.sat,j.sas||'',detayOf(j),j.birim||'',j.ted,j.tednot||'',j.kisi||'',j.not,...j.items.map(i=>(i.kod||'')+' '+i.ad+' '+i.acik)].join(' ').toLocaleLowerCase('tr');
     if(!hay.includes(q)) return false;
   }
   return true;
@@ -757,7 +762,7 @@ function jobHtml(j, i){
   return `<tr class="job ${rowCls(j)}${j.locked?' locked':''}" data-id="${j.id}">
     <td class="n sticky s1"><button class="tog" aria-expanded="${open}" aria-label="Malzemeleri aç/kapat"><span>▸</span></button><span class="grip" title="Tutup yukarı / aşağı sürükleyin" aria-label="Sırayı değiştirmek için sürükle">⋮⋮</span><span class="no">${i+1}</span></td>
     <td class="sticky s2"><input class="sat${satOk(j.sat)?'':' bad'}" data-f="sat"${ro} maxlength="${SATLEN}" value="${esc(j.sat)}" placeholder="10 karakter" aria-label="SAT kodu, 10 karakter"><small class="satcount"${satOk(j.sat)?' hidden':''}>${satMsg(j.sat)}</small></td>
-    <td class="detcell"><input class="detay${j.detay?'':' guess'}" data-f="detay" value="${esc(detayOf(j))}" placeholder="İş detayı" title="${esc(detayOf(j))}" aria-label="İş detayı"><select class="birim${j.birim?'':' empty'}" data-f="birim" aria-label="İşin ait olduğu birim" title="İşin ait olduğu birim">${birimHtml(j.birim)}</select><div class="msum">${msumHtml(j)}</div><div class="sugs"${j.detay?' hidden':''}>${sugHtml(j)}</div></td>
+    <td class="detcell"><input class="detay${j.detay?'':' guess'}" data-f="detay" value="${esc(detayOf(j))}" placeholder="İş detayı" title="${esc(detayOf(j))}" aria-label="İş detayı"><div class="detalt"><select class="birim${j.birim?'':' empty'}" data-f="birim" aria-label="İşin ait olduğu birim" title="İşin ait olduğu birim">${birimHtml(j.birim)}</select><input class="sas${j.sas&&j.sas.length!==10?' bad':''}" data-f="sas" value="${esc(j.sas||'')}" maxlength="10" inputmode="numeric" placeholder="SAS kodu" aria-label="SAS kodu (10 hane, isteğe bağlı)" title="SAS kodu (10 hane, isteğe bağlı)" autocomplete="off"></div><div class="msum">${msumHtml(j)}</div><div class="sugs"${j.detay?' hidden':''}>${sugHtml(j)}</div></td>
     <td class="acts"><div class="actbox">${j.locked
       ? '<button class="editj" title="SAT ve malzeme bilgilerini düzenle">Düzenle</button>'
       : '<button class="savej" title="Bilgileri kaydet ve kilitle">Kaydet</button>'}<button class="jdel" title="İşi sil">Sil</button></div></td>
@@ -850,6 +855,7 @@ function updateJob(el){
   j[f] = el.type==='checkbox' ? el.checked : el.value;
   if(f==='fatura' && j.fatura) j.onay = true;
   if(f==='detay'){ j.detay = el.value.trim()===upTR(guessDetay(j)) ? '' : el.value; el.classList.toggle('guess', !j.detay); el.title = detayOf(j); }
+  if(f==='sas'){ j.sas = el.value = el.value.replace(/\D/g,'').slice(0,10); el.classList.toggle('bad', !!j.sas && j.sas.length!==10); }
   if(f==='sat'){
     j.sat = el.value = el.value.replace(/\s/g,'').slice(0,SATLEN);
     el.classList.toggle('bad', !satOk(j.sat));
@@ -1114,7 +1120,7 @@ function yes(v){ return v===true || /^(evet|e|x|✓|true|1|var)$/i.test(String(v
 /* ---- Excel indir ---- */
 function fname(){ return `Is_Takip_${trDate(today()).replace(/\./g,'-')}.xlsx`; }
 function buildWb(list=jobs){
-  const H = ['SAT Kodu','İş Detayı','Tedarikçi','İlgili Kişi','Talep Tarihi','Onay','Malzeme Kodu','Malzeme Adı','Adet','Birim','Teslim Edilen','Kalan','Malzeme Durumu','Açıklama','Fatura Kesildi','İş Durumu','Not','İş Birimi'];
+  const H = ['SAT Kodu','İş Detayı','Tedarikçi','İlgili Kişi','Talep Tarihi','Onay','Malzeme Kodu','Malzeme Adı','Adet','Birim','Teslim Edilen','Kalan','Malzeme Durumu','Açıklama','Fatura Kesildi','İş Durumu','Not','İş Birimi','SAS Kodu'];
   const meta = [];
   const data = [H];
   list.forEach(j=>{
@@ -1122,12 +1128,12 @@ function buildWb(list=jobs){
     list.forEach(it=>{
       data.push([j.sat, detayOf(j), j.ted, j.kisi||'', trDate(j.tarih), j.onay?'Evet':'Hayır',
         it?it.kod:'', it?it.ad:'', it?(num(it.sip)??''):'', it?it.birim:'', it?(num(it.tes)??''):'', it?kalan(it):'',
-        it?(ITEM_LABEL[itemState(it)].t + (fazla(it)?` (+${fazla(it)})`:'')):'', it?it.acik:'', j.fatura?'Evet':'Hayır', stage(j).t, j.not, j.birim||'']);
+        it?(ITEM_LABEL[itemState(it)].t + (fazla(it)?` (+${fazla(it)})`:'')):'', it?it.acik:'', j.fatura?'Evet':'Hayır', stage(j).t, j.not, j.birim||'', j.sas||'']);
       meta.push({j, it});
     });
   });
   const ws = XLSX.utils.aoa_to_sheet(data);
-  ws['!cols'] = [14,28,22,18,12,8,13,28,8,8,12,8,15,24,13,30,24,14].map(w=>({wch:w}));
+  ws['!cols'] = [14,28,22,18,12,8,13,28,8,8,12,8,15,24,13,30,24,14,13].map(w=>({wch:w}));
   ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:0,c:0}, e:{r:data.length-1, c:H.length-1}})};
   const thin = {style:'thin', color:{rgb:'C9D1DA'}};
   const border = {top:thin,bottom:thin,left:thin,right:thin};
@@ -1438,6 +1444,11 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
   window.addEventListener('scroll', upd, {passive:true}); document.addEventListener('scroll', upd, {passive:true, capture:true});
   b.onclick = ()=>{ window.scrollTo({top:0, behavior:'smooth'}); document.documentElement.scrollTo && document.documentElement.scrollTo({top:0,behavior:'smooth'}); };
   upd(); })();
+
+/* tarayıcı otomatik doldurma arama kutusuna e-posta yazarsa temizle */
+(function(){ const e = document.getElementById('search'); if(!e) return;
+  const temizle = ()=>{ if(document.activeElement!==e && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e.value)){ e.value=''; q=''; render(); } };
+  [150,600,1500,3000,6000].forEach(ms=>setTimeout(temizle, ms)); })();
 </script>
 </body>
 </html>
